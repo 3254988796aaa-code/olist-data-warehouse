@@ -1,0 +1,28 @@
+ads_region_sales.customer_state,ads_region_sales.state_name,ads_region_sales.order_cnt,ads_region_sales.customer_cnt,ads_region_sales.sales_amount,ads_region_sales.avg_order_value
+SP,São Paulo,41125,41125,5163867.22,125.57
+RJ,Rio de Janeiro,12697,12697,1811623.42,142.68
+MG,Minas Gerais,11496,11496,1573508.2,136.87
+RS,Rio Grande do Sul,5415,5415,742559.78,137.13
+PR,Paraná,4982,4982,676883.06,135.87
+SC,Santa Catarina,3599,3599,518578.28,144.09
+BA,Bahia,3344,3344,507108.83,151.65
+DF,Distrito Federal,2120,2120,300886.45,141.93
+GO,Goiás,1998,1998,287870.46,144.08
+ES,Espírito Santo,2018,2018,273532.13,135.55
+PE,Pernambuco,1643,1643,261739.94,159.31
+CE,Ceará,1323,1323,226264.06,171.02
+PA,Pará,969,969,178821.12,184.54
+MT,Mato Grosso,902,902,156313.53,173.3
+MA,Maranhão,736,736,119291.62,162.08
+MS,Mato Grosso do Sul,708,708,116754.65,164.91
+PB,Paraíba,531,531,114874.1,216.34
+PI,Piauí,490,490,86660.09,176.86
+RN,Rio Grande do Norte,482,482,83034.98,172.27
+AL,Alagoas,411,411,80314.81,195.41
+SE,Sergipe,345,345,58920.85,170.79
+TO,Tocantins,278,278,49407.99,177.73
+RO,Rondônia,246,246,46031.64,187.12
+AM,Amazonas,147,147,22356.84,152.09
+AC,Acre,81,81,15982.95,197.32
+AP,Amapá,68,68,13474.3,198.15
+RR,Roraima,45,45,7739.44,171.99
