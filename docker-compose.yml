@@ -1,0 +1,177 @@
+﻿version: '3.8'
+
+networks:
+  data-platform:
+    driver: bridge
+
+volumes:
+  namenode_data:
+  datanode_data:
+  postgres_data:
+  spark_master_data:
+  spark_worker_data:
+
+services:
+  namenode:
+    image: infravibe/hadoop:3.3.6
+    platform: linux/amd64
+    container_name: namenode
+    hostname: namenode
+    command: ["hdfs", "namenode"]
+    ports:
+      - "9870:9870"
+      - "8020:8020"
+    environment:
+      - ENSURE_NAMENODE_DIR=/tmp/hadoop-root/dfs/name
+    volumes:
+      - namenode_data:/tmp/hadoop-root/dfs/name
+      - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+    networks:
+      - data-platform
+    user: root
+
+  datanode:
+    image: infravibe/hadoop:3.3.6
+    platform: linux/amd64
+    container_name: datanode
+    hostname: datanode
+    command: ["hdfs", "datanode"]
+    volumes:
+      - datanode_data:/tmp/hadoop-root/dfs/data
+      - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+    networks:
+      - data-platform
+    depends_on:
+      - namenode
+    user: root
+
+  resourcemanager:
+    image: infravibe/hadoop:3.3.6
+    platform: linux/amd64
+    container_name: resourcemanager
+    hostname: resourcemanager
+    command: ["yarn", "resourcemanager"]
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ./conf/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml
+    networks:
+      - data-platform
+    depends_on:
+      - namenode
+      - datanode
+
+  nodemanager:
+    image: infravibe/hadoop:3.3.6
+    platform: linux/amd64
+    container_name: nodemanager
+    hostname: nodemanager
+    command: ["yarn", "nodemanager"]
+    environment:
+      - YARN_CONF_yarn_nodemanager_resource_memory_mb=4096
+      - YARN_CONF_yarn_nodemanager_resource_cpu_vcores=4
+    volumes:
+      - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ./conf/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml
+    networks:
+      - data-platform
+    depends_on:
+      - resourcemanager
+
+  postgres:
+    image: postgres:16-alpine
+    platform: linux/amd64
+    container_name: postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=hive
+      - POSTGRES_DB=metastore
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - data-platform
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive -d metastore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  hive-metastore:
+    image: apache/hive:4.0.0
+    platform: linux/amd64
+    container_name: hive-metastore
+    hostname: hive-metastore
+    command: ["sleep", "infinity"]
+    environment:
+      - SERVICE_NAME=metastore
+      - DB_DRIVER=postgres
+      - SERVICE_OPTS=-Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/metastore -Djavax.jdo.option.ConnectionUserName=hive -Djavax.jdo.option.ConnectionPassword=hive -Dhive.metastore.warehouse.dir=hdfs://namenode:8020/user/hive/warehouse
+      - IS_RESUME=true
+    volumes:
+      - ./jars/postgresql-42.7.13.jar:/opt/hive/lib/postgresql-42.7.13.jar
+    networks:
+      - data-platform
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  hive-server:
+    image: apache/hive:4.0.0
+    platform: linux/amd64
+    container_name: hive-server
+    hostname: hive-server
+    command: ["/opt/hive/bin/hive", "--service", "hiveserver2"]
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    environment:
+      - SERVICE_NAME=hiveserver2
+      - DB_DRIVER=postgres
+      - SERVICE_OPTS=-Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/metastore -Djavax.jdo.option.ConnectionUserName=hive -Djavax.jdo.option.ConnectionPassword=hive -Dhive.metastore.uris=thrift://hive-metastore:9083 -Dhive.metastore.warehouse.dir=hdfs://namenode:8020/user/hive/warehouse
+      - IS_RESUME=true
+    volumes:
+      - ./jars/postgresql-42.7.13.jar:/opt/hive/lib/postgresql-42.7.13.jar
+    networks:
+      - data-platform
+    depends_on:
+      - hive-metastore
+
+  spark-master:
+    image: apache/spark:3.5.1
+    platform: linux/amd64
+    container_name: spark-master
+    hostname: spark-master
+    user: root
+    command: ["/opt/spark/sbin/start-master.sh"]
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_MASTER_HOST=spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - spark_master_data:/opt/spark/work
+      - ./conf/core-site.xml:/opt/spark/conf/core-site.xml
+      - ./conf/hive-site.xml:/opt/spark/conf/hive-site.xml
+    networks:
+      - data-platform
+
+  spark-worker:
+    image: apache/spark:3.5.1
+    platform: linux/amd64
+    container_name: spark-worker
+    hostname: spark-worker
+    user: root
+    command: ["/opt/spark/sbin/start-worker.sh", "spark://spark-master:7077"]
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    volumes:
+      - spark_worker_data:/opt/spark/work
+      - ./conf/core-site.xml:/opt/spark/conf/core-site.xml
+      - ./conf/hive-site.xml:/opt/spark/conf/hive-site.xml
+    networks:
+      - data-platform
+    depends_on:
+      - spark-master

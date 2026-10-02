@@ -1,0 +1,20 @@
+# Docker data
+volumes/
+data/
+logs/
+*.log
+
+# Raw data (~143MB)
+olist_data/
+
+# JDBC drivers
+jars/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Temp files
+*.tmp
+*.bak
+*.bak2
