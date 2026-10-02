@@ -1,0 +1,5 @@
+dashscope>=1.27.0
+openai>=2.21.0
+langchain>=1.4.0
+chromadb>=1.5.0
+streamlit>=1.54.0
